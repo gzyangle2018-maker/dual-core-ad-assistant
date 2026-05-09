@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>双核广告助手 v2.0 SaaS | LeoYoung Original</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f0f1a;--card:#1a1a2e;--card2:#16213e;--accent:#667eea;--accent2:#764ba2;--text:#e0e0e0;--muted:#a0a0b0;--danger:#f38ba8;--success:#a6e3a1;--warning:#f9e2af;--info:#89b4fa;--border:#2a2a3e}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+.container{display:flex;min-height:100vh}
+
+/* Login */
+.login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,var(--bg) 0%,#1a1a3e 100%);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-box{background:var(--card);padding:40px;border-radius:16px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid var(--border)}
+.login-box h2{text-align:center;margin-bottom:8px;color:var(--accent);font-size:1.6em}
+.login-box .sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:25px}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--muted)}
+.form-group input{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px}
+.form-group input:focus{outline:none;border-color:var(--accent)}
+.btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;transition:opacity .2s}
+.btn:hover{opacity:.9}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:6px 14px;font-size:13px;width:auto}
+.btn-danger{background:linear-gradient(135deg,#f38ba8,#f7768e)}
+.btn-success{background:linear-gradient(135deg,#a6e3a1,#73daca)}
+.btn-info{background:linear-gradient(135deg,#89b4fa,#7aa2f7)}
+
+/* Sidebar */
+.sidebar{width:220px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-size:1.15em;color:var(--accent)}
+.sidebar-header .tag{font-size:11px;color:var(--muted);margin-top:2px}
+.nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-item{padding:12px 20px;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;transition:all .2s;border-left:3px solid transparent}
+.nav-item:hover{background:rgba(102,126,234,.1);color:var(--text)}
+.nav-item.active{background:rgba(102,126,234,.15);color:var(--accent);border-left-color:var(--accent)}
+.nav-item .icon{width:20px;text-align:center}
+.sidebar-footer{padding:15px 20px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.header{height:56px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.header-left{font-size:14px;color:var(--muted)}
+.header-right{display:flex;align-items:center;gap:15px}
+.badge{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-admin{background:rgba(102,126,234,.2);color:var(--accent)}
+.badge-operator{background:rgba(166,227,161,.2);color:var(--success)}
+.user-menu{cursor:pointer;font-size:13px;color:var(--muted)}
+
+/* Content */
+.content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}
+.page.active{display:block}
+
+/* Cards */
+.card{background:var(--card);border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid var(--border)}
+.card h2{font-size:1.1em;margin-bottom:15px;color:var(--text);display:flex;align-items:center;gap:8px}
+.card h2 .icon{color:var(--accent)}
+
+/* Drop zone */
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;transition:all .3s;background:rgba(102,126,234,.03);cursor:pointer}
+.drop-zone.dragover{border-color:var(--accent);background:rgba(102,126,234,.08)}
+.drop-zone .icon{font-size:36px;color:var(--accent);margin-bottom:10px}
+.drop-zone p{color:var(--muted);font-size:14px}
+.file-list{margin-top:15px}
+.file-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:8px;font-size:13px}
+.file-item .name{color:var(--text)}
+.file-item .meta{color:var(--muted);font-size:12px}
+.file-item .remove{color:var(--danger);cursor:pointer;font-size:16px}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+th{background:var(--card2);color:var(--accent);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+tr:hover{background:rgba(102,126,234,.05)}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.tab{padding:10px 18px;cursor:pointer;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;transition:all .2s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.metric-card{background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border);text-align:center}
+.metric-card .value{font-size:2em;font-weight:700;color:var(--accent);margin:8px 0}
+.metric-card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.metric-card .delta{font-size:12px;margin-top:4px}
+.delta-up{color:var(--danger)}
+.delta-down{color:var(--success)}
+
+/* Severity */
+.severity{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.sev-critical{background:rgba(243,139,168,.15);color:var(--danger)}
+.sev-warning{background:rgba(249,226,175,.15);color:var(--warning)}
+.sev-info{background:rgba(137,180,250,.15);color:var(--info)}
+
+/* Result sections */
+.result-section{background:var(--card2);border-radius:10px;padding:18px;margin-bottom:16px;border-left:3px solid var(--accent)}
+.result-section h3{font-size:14px;color:var(--accent);margin-bottom:12px}
+.result-section ul{margin-left:18px}
+.result-section li{margin:6px 0;font-size:13px}
+.action-item{padding:12px;background:var(--bg);border-radius:8px;margin-bottom:8px;font-size:13px}
+.action-item .title{font-weight:600;margin-bottom:4px}
+.action-item .desc{color:var(--muted);font-size:12px}
+
+/* Calculator inputs */
+.calc-row{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px}
+.calc-row.three{grid-template-columns:1fr 1fr 1fr}
+.calc-result{background:linear-gradient(135deg,rgba(102,126,234,.1),rgba(118,75,162,.1));border:1px solid var(--accent);border-radius:10px;padding:20px;text-align:center;margin-top:20px}
+.calc-result .big{font-size:2.2em;font-weight:700;color:var(--accent)}
+.calc-result .small{color:var(--muted);font-size:13px}
+
+/* Toast */
+.toast{position:fixed;top:20px;right:20px;padding:14px 22px;border-radius:10px;color:#fff;font-size:13px;font-weight:500;z-index:10000;animation:slideIn .3s ease;max-width:360px}
+.toast.error{background:var(--danger)}
+.toast.success{background:var(--success)}
+.toast.info{background:var(--info)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* Responsive */
+@media(max-width:768px){.sidebar{width:60px}.sidebar-header h1,.nav-item span,.sidebar-footer{display:none}.nav-item{justify-content:center;padding:12px}.main{padding:0}.content{padding:15px}.calc-row,.calc-row.three{grid-template-columns:1fr}}
+
+/* Loading */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-radius:50%;border-top-color:#fff;animation:spin 1s linear infinite;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#3a3a5e}
+
+/* Admin only */
+.admin-only{display:none}
+body.is-admin .admin-only{display:block}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div class="login-overlay" id="login-overlay">
+<div class="login-box">
+<h2>双核广告助手 v2.0</h2>
+<p class="sub">LeoYoung Original | 批量报告诊断 SaaS</p>
+<div class="form-group"><label>用户名</label><input type="text" id="login-user" value="admin"></div>
+<div class="form-group"><label>密码</label><input type="password" id="login-pass" value="admin123"></div>
+<button class="btn" id="btn-login">登录</button>
+<p style="text-align:center;margin-top:15px;font-size:12px;color:var(--muted)">默认管理员: admin/admin123 | 运营: operator/op123</p>
+</div>
+</div>
+
+<!-- App -->
+<div class="container" id="app" style="display:none">
+<aside class="sidebar">
+<div class="sidebar-header">
+<h1>双核广告助手</h1>
+<div class="tag">v2.0 SaaS | LeoYoung</div>
+</div>
+<nav class="nav">
+<div class="nav-item active" data-page="batch"><span class="icon">📊</span><span>批量诊断</span></div>
+<div class="nav-item" data-page="overview"><span class="icon">📖</span><span>双核概览</span></div>
+<div class="nav-item" data-page="calculator"><span class="icon">🧮</span><span>智能出价</span></div>
+<div class="nav-item" data-page="strategy"><span class="icon">🎯</span><span>竞价策略</span></div>
+<div class="nav-item" data-page="match"><span class="icon">🔗</span><span>匹配助手</span></div>
+<div class="nav-item" data-page="goals"><span class="icon">🚩</span><span>目标策略</span></div>
+<div class="nav-item" data-page="metrics"><span class="icon">📈</span><span>指标分析</span></div>
+<div class="nav-item" data-page="cosmo"><span class="icon">🤖</span><span>COSMO优化</span></div>
+<div class="nav-item" data-page="visual"><span class="icon">📉</span><span>数据可视化</span></div>
+<div class="nav-item" data-page="users"><span class="icon">👥</span><span>用户管理</span></div>
+</nav>
+<div class="sidebar-footer">LeoYoung Original</div>
+</aside>
+
+<main class="main">
+<header class="header">
+<div class="header-left" id="page-title">批量报告诊断</div>
+<div class="header-right">
+<span class="badge badge-admin" id="role-badge">管理员</span>
+<span class="user-menu" id="logout-btn">退出登录</span>
+</div>
+</header>
+
+<div class="content">
+
+<!-- ============ 批量诊断 ============ -->
+<div class="page active" id="page-batch">
+<div class="card">
+<h2><span class="icon">📥</span> 拖拽投喂报告</h2>
+<div class="drop-zone" id="drop-zone">
+<div class="icon">📁</div>
+<p>拖拽广告报表、ABA报告、业务报告、ERP搜索词报告到此处<br>支持 .csv / .xlsx / .xls / .txt</p>
+<input type="file" id="file-input" multiple accept=".csv,.xlsx,.xls,.txt" style="display:none">
+</div>
+<div class="file-list" id="file-list"></div>
+<div style="margin-top:15px;display:flex;gap:10px">
+<button class="btn btn-sm" id="btn-parse">解析所有报告</button>
+<button class="btn btn-sm btn-danger" id="btn-clear">清空列表</button>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="icon">⚙️</span> 诊断配置</h2>
+<div class="calc-row three">
+<div class="form-group"><label>目标ACOS (%)</label><input type="number" id="cfg-acos" value="25" step="0.1"></div>
+<div class="form-group"><label>产品阶段</label>
+<select id="cfg-stage">
+<option value="新品期">新品期</option><option value="二次推广">二次推广</option>
+<option value="成熟期" selected>成熟期</option><option value="清货期">清货期</option>
+</select>
+</div>
+<div class="form-group"><label>主要目标</label>
+<select id="cfg-goal">
+<option value="获取曝光">获取曝光</option><option value="提升转化">提升转化</option>
+<option value="控制ACOS">控制ACOS</option><option value="利润最大化">利润最大化</option>
+</select>
+</div>
+</div>
+<button class="btn btn-sm btn-success" id="btn-diagnose">运行诊断</button>
+</div>
+
+<div class="card hidden" id="diagnosis-result">
+<h2><span class="icon">📋</span> 诊断结果</h2>
+<div id="result-content"></div>
+<div style="margin-top:15px;display:flex;gap:10px">
+<button class="btn btn-sm" id="btn-export-html">导出HTML报告</button>
+<button class="btn btn-sm" id="btn-export-txt">导出TXT报告</button>
+</div>
+</div>
+</div>
+
+<!-- ============ 双核概览 ============ -->
+<div class="page" id="page-overview">
+<div class="card">
+<h2>双核投放法核心理念</h2>
+<p style="margin-bottom:15px">双核投放法的核心思想是：在亚马逊广告投放中，同时把控<b>流量广度</b>与<b>投放精度</b>两个维度，实现「关键词全覆盖」与「CPA精准控制」的协同。</p>
+<div class="grid">
+<div class="metric-card">
+<div class="label">核一：关键词全覆盖</div>
+<div style="font-size:13px;color:var(--muted);margin-top:8px">通过广泛匹配最大范围探索流量，通过词组匹配捕捉相关搜索词，持续挖掘新的高价值关键词</div>
+</div>
+<div class="metric-card">
+<div class="label">核二：CPA精准控制</div>
+<div style="font-size:13px;color:var(--muted);margin-top:8px">通过精准匹配锁定高价值流量，通过否定关键词排除无效流量，精细化控制每次获取成本</div>
+</div>
+</div>
+</div>
+<div class="card">
+<h2>核心公式</h2>
+<div class="grid">
+<div class="metric-card"><div class="label">CPC 公式</div><div class="value">CPC = CPS × CVR</div></div>
+<div class="metric-card"><div class="label">自然排名 eCPM</div><div class="value">1000×eCTR×eCVR×Price</div></div>
+<div class="metric-card"><div class="label">广告排名 eCPM</div><div class="value">eCTR × Bid</div></div>
+<div class="metric-card"><div class="label">净利润</div><div class="value">(毛利-TACOS)×售价×单量</div></div>
+</div>
+</div>
+<div class="card">
+<h2>广告归因规则</h2>
+<table>
+<tr><th>广告类型</th><th>归因周期</th><th>归因模型</th></tr>
+<tr><td>Sponsored Products (SP)</td><td>7 天</td><td>Last-touch</td></tr>
+<tr><td>Sponsored Brands (SB)</td><td>14 天</td><td>Last-touch</td></tr>
+<tr><td>Sponsored Display (SD)</td><td>14 天</td><td>View-through + Click</td></tr>
+<tr><td>Sponsored TV</td><td>14 天</td><td>Last-touch</td></tr>
+</table>
+</div>
+</div>
+
+<!-- ============ 智能出价 ============ -->
+<div class="page" id="page-calculator">
+<div class="card">
+<h2>智能出价计算器</h2>
+<div class="calc-row">
+<div class="form-group"><label>客单价 (Price)</label><input type="number" id="calc-price" value="29.99" step="0.01"></div>
+<div class="form-group"><label>毛利率 (%)</label><input type="number" id="calc-margin" value="30" step="0.1"></div>
+</div>
+<div class="calc-row">
+<div class="form-group"><label>转化率 CVR (%)</label><input type="number" id="calc-cvr" value="10" step="0.1"></div>
+<div class="form-group"><label>目标ACOS (%)</label><input type="number" id="calc-target-acos" value="25" step="0.1"></div>
+</div>
+<div class="calc-row">
+<div class="form-group"><label>当前CPC ($)</label><input type="number" id="calc-curr-cpc" value="1.2" step="0.01"></div>
+<div class="form-group"><label>当前竞价 ($)</label><input type="number" id="calc-curr-bid" value="1.5" step="0.01"></div>
+</div>
+<button class="btn btn-sm" onclick="runBidCalc()">计算</button>
+<div class="calc-result" id="bid-result" style="display:none">
+<div class="small">理论最大可承受CPC</div>
+<div class="big" id="bid-max-cpc">$0.00</div>
+<div class="small" style="margin-top:10px">建议竞价调整：<span id="bid-suggestion" style="color:var(--success);font-weight:600">--</span></div>
+</div>
+</div>
+</div>
+
+<!-- ============ 竞价策略 ============ -->
+<div class="page" id="page-strategy">
+<div class="card">
+<h2>竞价策略指南</h2>
+<div class="result-section"><h3>动态竞价 - 只降低</h3><p>适用：清货期 / 利润期<br>特点：系统仅在转化可能性低时降低竞价，不会提高。适合严格控制成本。</p></div>
+<div class="result-section"><h3>动态竞价 - 提高和降低</h3><p>适用：新品期 / 二次推广<br>特点：系统可最高提高100%（TOS最高+300%），适合追求曝光和排名。</p></div>
+<div class="result-section"><h3>固定竞价</h3><p>适用：成熟期精准控制<br>特点：竞价固定不变，适合对广告位有精确要求的场景。</p></div>
+<div class="result-section"><h3>广告位溢价</h3><p>Top of Search (TOS): 最高 +300%<br>Product Pages (PP): 最高 +200%<br>Rest of Search (ROS): 默认</p></div>
+</div>
+</div>
+
+<!-- ============ 匹配助手 ============ -->
+<div class="page" id="page-match">
+<div class="card">
+<h2>匹配类型助手</h2>
+<table>
+<tr><th>匹配类型</th><th>流量范围</th><th>适用场景</th><th>建议</th></tr>
+<tr><td>广泛匹配 (Broad)</td><td>最大</td><td>新品期探索流量</td><td>用于发现新关键词，需配合否定词</td></tr>
+<tr><td>词组匹配 (Phrase)</td><td>中等</td><td>成长期精准拓流</td><td>控制搜索词相关性，流量质量较好</td></tr>
+<tr><td>精准匹配 (Exact)</td><td>最小</td><td>成熟期控制CPA</td><td>高价值词独立投放，ROI最优</td></tr>
+<tr><td>否定词组</td><td>--</td><td>排除无关流量</td><td>批量排除不相关属性词</td></tr>
+<tr><td>否定精准</td><td>--</td><td>排除特定词</td><td>精准否定高点击无转化词</td></tr>
+</table>
+</div>
+</div>
+
+<!-- ============ 目标策略 ============ -->
+<div class="page" id="page-goals">
+<div class="card">
+<h2>按阶段的目标策略</h2>
+<div class="grid">
+<div class="metric-card"><div class="label">新品期</div><div style="font-size:13px;color:var(--muted);margin-top:8px">目标：获取曝光和评论<br>ACOS容忍：50-80%<br>策略：广泛+词组为主，动态竞价提高和降低</div></div>
+<div class="metric-card"><div class="label">二次推广</div><div style="font-size:13px;color:var(--muted);margin-top:8px">目标：提升排名和销量<br>ACOS容忍：30-50%<br>策略：加大精准投放，测试新词</div></div>
+<div class="metric-card"><div class="label">成熟期</div><div style="font-size:13px;color:var(--muted);margin-top:8px">目标：利润最大化<br>ACOS目标：15-25%<br>策略：精准为主，否定优化，控制预算</div></div>
+<div class="metric-card"><div class="label">清货期</div><div style="font-size:13px;color:var(--muted);margin-top:8px">目标：快速出清<br>ACOS容忍：接受亏损<br>策略：降低竞价，SD再营销，控制花费</div></div>
+</div>
+</div>
+</div>
+
+<!-- ============ 指标分析 ============ -->
+<div class="page" id="page-metrics">
+<div class="card">
+<h2>核心指标分析</h2>
+<table>
+<tr><th>指标</th><th>健康范围</th><th>偏低处理</th><th>偏高处理</th></tr>
+<tr><td>CTR (点击率)</td><td>0.3% - 1%</td><td>优化主图/标题/价格</td><td>检查是否流量过窄</td></tr>
+<tr><td>CVR (转化率)</td><td>5% - 20%</td><td>优化Listing/A+/Review</td><td>检查是否流量过于精准</td></tr>
+<tr><td>ACOS</td><td>15% - 30%</td><td>降低竞价/否定无效词</td><td>加大预算/提高竞价</td></tr>
+<tr><td>TACOS</td><td>&lt; 10%</td><td>自然排名优化</td><td>检查广告占比过高</td></tr>
+<tr><td>CPC</td><td>因类目而异</td><td>提高竞价或质量得分</td><td>降低竞价或优化转化</td></tr>
+</table>
+</div>
+</div>
+
+<!-- ============ COSMO优化 ============ -->
+<div class="page" id="page-cosmo">
+<div class="card">
+<h2>COSMO 算法优化</h2>
+<div class="result-section"><h3>三层知识转化</h3><p>1. 用户画像层：用户是谁？<br>2. 购物意图层：用户想买什么？<br>3. 知识匹配层：哪些产品最匹配？</p></div>
+<div class="result-section"><h3>标题优化比例</h3><p>核心关键词 50% + 属性词 30% + 场景词 20%</p></div>
+<div class="result-section"><h3>优化建议</h3><ul><li>标题前50字符必须包含核心关键词</li><li>埋入场景词（Travel, Office, Home）</li><li>后端搜索词补充同义词和变体</li><li>A+内容植入使用场景图片</li></ul></div>
+</div>
+</div>
+
+<!-- ============ 数据可视化 ============ -->
+<div class="page" id="page-visual">
+<div class="card">
+<h2>数据可视化</h2>
+<p style="color:var(--muted);margin-bottom:15px">请先运行批量诊断，数据将在此处展示图表</p>
+<div id="charts-container">
+<div class="grid">
+<div class="metric-card"><div class="label">ACOS 趋势</div><canvas id="chart-acos" height="200"></canvas></div>
+<div class="metric-card"><div class="label">花费分布</div><canvas id="chart-spend" height="200"></canvas></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ============ 用户管理 ============ -->
+<div class="page" id="page-users">
+<div class="card admin-only">
+<h2>用户管理</h2>
+<table>
+<tr><th>用户名</th><th>角色</th><th>操作</th></tr>
+<tr><td>admin</td><td><span class="badge badge-admin">管理员</span></td><td><button class="btn btn-sm btn-info" onclick="alert('请到设置中修改密码')">修改密码</button></td></tr>
+<tr><td>operator</td><td><span class="badge badge-operator">运营</span></td><td><button class="btn btn-sm btn-info" onclick="alert('请到设置中修改密码')">修改密码</button></td></tr>
+</table>
+</div>
+<div class="card">
+<h2>修改密码</h2>
+<div class="calc-row">
+<div class="form-group"><label>原密码</label><input type="password" id="pwd-old"></div>
+<div class="form-group"><label>新密码</label><input type="password" id="pwd-new"></div>
+</div>
+<button class="btn btn-sm" onclick="changePassword()">保存</button>
+</div>
+</div>
+
+</div>
+</main>
+</div>
+
+<script>
+// ==================== 全局状态 ====================
+let API_BASE = 'https://dual-core-ad-assistant.gzyangle2018.workers.dev';
+let currentUser = null;
+let authToken = null;
+let uploadedFiles = [];
+let parsedReports = {};
+let currentDiagnosis = null;
+
+// ==================== Toast ====================
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type || 'info');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ==================== API ====================
+async function api(path, opts) {
+  const url = API_BASE + path;
+  const options = {
+    method: opts?.method || 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  };
+  if (authToken) options.headers['Authorization'] = 'Bearer ' + authToken;
+  if (opts?.body) options.body = JSON.stringify(opts.body);
+  try {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
+    if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+    return data;
+  } catch (err) {
+    toast(err.message, 'error');
+    throw err;
+  }
+}
+
+// ==================== Auth ====================
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const user = document.getElementById('login-user').value;
+  const pass = document.getElementById('login-pass').value;
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = '登录中...';
+  try {
+    const data = await api('/api/auth/login', { method: 'POST', body: { username: user, password: pass } });
+    authToken = data.token;
+    currentUser = data;
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('role-badge').textContent = data.role === 'admin' ? '管理员' : '运营';
+    document.getElementById('role-badge').className = 'badge ' + (data.role === 'admin' ? 'badge-admin' : 'badge-operator');
+    if (data.role === 'admin') document.body.classList.add('is-admin');
+    toast('欢迎回来，' + data.username, 'success');
+  } finally { btn.disabled = false; btn.textContent = '登录'; }
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  authToken = null; currentUser = null;
+  location.reload();
+});
+
+// ==================== Navigation ====================
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    const page = item.dataset.page;
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    const titles = { batch: '批量报告诊断', overview: '双核概览', calculator: '智能出价', strategy: '竞价策略', match: '匹配助手', goals: '目标策略', metrics: '指标分析', cosmo: 'COSMO优化', visual: '数据可视化', users: '用户管理' };
+    document.getElementById('page-title').textContent = titles[page] || page;
+  });
+});
+
+// ==================== File Upload ====================
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(files) {
+  for (const f of files) {
+    if (!uploadedFiles.find(x => x.name === f.name)) {
+      uploadedFiles.push(f);
+    }
+  }
+  renderFileList();
+}
+
+function renderFileList() {
+  const list = document.getElementById('file-list');
+  list.innerHTML = uploadedFiles.map((f, i) =>
+    `<div class="file-item"><span class="name">${escapeHtml(f.name)}</span><span class="meta">${(f.size/1024).toFixed(1)} KB</span><span class="remove" onclick="removeFile(${i})">&times;</span></div>`
+  ).join('');
+}
+window.removeFile = function(i) { uploadedFiles.splice(i, 1); renderFileList(); };
+
+function escapeHtml(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+// ==================== Parse Reports ====================
+function parseExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        resolve(rows);
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('读取失败'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseCSV(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result;
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      const rows = lines.map(l => l.split(',').map(c => c.trim().replace(/^"|"$/g, '')));
+      resolve(rows);
+    };
+    reader.onerror = () => reject(new Error('读取失败'));
+    reader.readAsText(file);
+  });
+}
+
+function detectReportType(headers, filename) {
+  const h = headers.map(x => String(x).toLowerCase().trim());
+  const fname = (filename || '').toLowerCase();
+  if (h.some(c => /campaign|广告活动|spend|sales/.test(c)) || /campaign|推广|广告活动/.test(fname)) return 'campaign_report';
+  if (h.some(c => /search.term|搜索词|customer.search/.test(c)) || /search.?term|搜索词/.test(fname)) return 'search_term_report';
+  if (h.some(c => /search.frequency.rank|排名/.test(c)) || /aba|品牌分析/.test(fname)) return 'aba_search_terms';
+  if (h.some(c => /sessions|page.views|units.ordered/.test(c)) || /business|业务报告/.test(fname)) return 'business_report';
+  if (/erp/.test(fname)) return 'erp_search_term';
+  return 'unknown';
+}
+
+function standardizeColumns(headers) {
+  const colMap = {
+    '广告活动名称': 'campaign_name', 'campaign name': 'campaign_name', 'campaign': 'campaign_name',
+    '广告组名称': 'ad_group', 'ad group': 'ad_group',
+    '搜索词': 'search_term', 'search term': 'search_term', 'customer search term': 'search_term',
+    '花费': 'spend', 'spend': 'spend',
+    '销售额': 'sales', 'sales': 'sales',
+    'acos': 'acos', 'acos %': 'acos',
+    '曝光量': 'impressions', 'impressions': 'impressions',
+    '点击量': 'clicks', 'clicks': 'clicks',
+    'ctr': 'ctr', 'ctr %': 'ctr',
+    'cpc': 'cpc',
+    '订单': 'orders', 'orders': 'orders',
+    '销量': 'units', 'units': 'units',
+    '转化率': 'cvr', 'cvr': 'cvr'
+  };
+  return headers.map(h => {
+    const key = String(h || '').toLowerCase().trim();
+    return colMap[key] || key.replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  });
+}
+
+function rowsToObjects(rows) {
+  if (!rows || rows.length < 2) return [];
+  const headers = standardizeColumns(rows[0]);
+  return rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => {
+      let val = row[i];
+      if (typeof val === 'string') {
+        val = val.replace(/[$,%\s]/g, '').trim();
+        if (!isNaN(val) && val !== '') val = parseFloat(val);
+      }
+      obj[h] = val;
+    });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v !== undefined && v !== ''));
+}
+
+async function parseFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  let rows;
+  if (ext === 'csv' || ext === 'txt') rows = await parseCSV(file);
+  else if (['xlsx','xls'].includes(ext)) rows = await parseExcel(file);
+  else throw new Error('不支持的格式: ' + ext);
+  const reportType = detectReportType(rows[0] || [], file.name);
+  const data = rowsToObjects(rows);
+  return { filename: file.name, reportType, data, rowCount: data.length };
+}
+
+document.getElementById('btn-parse').addEventListener('click', async () => {
+  if (uploadedFiles.length === 0) { toast('请先上传文件', 'error'); return; }
+  const btn = document.getElementById('btn-parse');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>解析中...';
+  parsedReports = {};
+  let success = 0, fail = 0;
+  for (const f of uploadedFiles) {
+    try {
+      const result = await parseFile(f);
+      if (!parsedReports[result.reportType]) parsedReports[result.reportType] = [];
+      parsedReports[result.reportType] = parsedReports[result.reportType].concat(result.data);
+      success++;
+    } catch (err) { console.error(err); fail++; }
+  }
+  btn.disabled = false; btn.innerHTML = '解析所有报告';
+  toast(`解析完成: ${success}成功, ${fail}失败`, fail > 0 ? 'error' : 'success');
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  uploadedFiles = []; parsedReports = {}; renderFileList();
+});
+
+// ==================== Diagnosis Engine ====================
+function runLocalDiagnosis() {
+  const targetACOS = parseFloat(document.getElementById('cfg-acos').value) || 25;
+  const stage = document.getElementById('cfg-stage').value;
+  const goal = document.getElementById('cfg-goal').value;
+
+  const campaigns = parsedReports.campaign_report || [];
+  const searchTerms = parsedReports.search_term_report || [];
+  const abaTerms = parsedReports.aba_search_terms || [];
+  const business = parsedReports.business_report || [];
+
+  let totalSpend = 0, totalSales = 0, totalClicks = 0, totalImpressions = 0, totalOrders = 0;
+  for (const c of campaigns) {
+    totalSpend += parseFloat(c.spend) || 0;
+    totalSales += parseFloat(c.sales) || 0;
+    totalClicks += parseFloat(c.clicks) || 0;
+    totalImpressions += parseFloat(c.impressions) || 0;
+    totalOrders += parseFloat(c.orders) || 0;
+  }
+
+  const acos = totalSales > 0 ? (totalSpend / totalSales * 100) : 0;
+  const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions * 100) : 0;
+  const cvr = totalClicks > 0 ? (totalOrders / totalClicks * 100) : 0;
+  const cpc = totalClicks > 0 ? (totalSpend / totalClicks) : 0;
+
+  const issues = [];
+  if (acos > targetACOS * 1.5) issues.push({ severity: 'critical', text: `ACOS ${acos.toFixed(1)}% 远超目标 ${targetACOS}%` });
+  else if (acos > targetACOS) issues.push({ severity: 'warning', text: `ACOS ${acos.toFixed(1)}% 高于目标 ${targetACOS}%` });
+  if (cvr < 5) issues.push({ severity: 'warning', text: `转化率 ${cvr.toFixed(1)}% 偏低` });
+  if (ctr < 0.2) issues.push({ severity: 'warning', text: `CTR ${ctr.toFixed(2)}% 偏低` });
+  if (totalSpend < 10) issues.push({ severity: 'info', text: '花费极低，建议增加预算' });
+
+  const highSpendNoSales = [];
+  const aceKeywords = [];
+  const keywordIssues = [];
+
+  for (const st of searchTerms) {
+    const clicks = parseFloat(st.clicks) || 0;
+    const orders = parseFloat(st.orders) || 0;
+    const acosVal = parseFloat(st.acos) || 0;
+    if (clicks >= 10 && orders === 0) highSpendNoSales.push(st.search_term || 'Unknown');
+    if (acosVal > targetACOS * 1.5 && clicks > 5) keywordIssues.push({ term: st.search_term || 'Unknown', acos: acosVal });
+    if ((st.ctr || 0) > 0.5 && (st.cvr || 0) > 10 && orders >= 3) aceKeywords.push(st.search_term || 'Unknown');
+  }
+
+  const searchTermActions = [];
+  for (const st of searchTerms.slice(0, 30)) {
+    const clicks = parseFloat(st.clicks) || 0;
+    const orders = parseFloat(st.orders) || 0;
+    const acosVal = parseFloat(st.acos) || 0;
+    if (clicks >= 10 && orders === 0) searchTermActions.push({ term: st.search_term || '', action: '精准否定', reason: '点击10次无转化' });
+    else if (acosVal > 40 && clicks > 5) searchTermActions.push({ term: st.search_term || '', action: '降低竞价或否定', reason: `ACOS ${acosVal.toFixed(1)}%过高` });
+    else if ((st.ctr || 0) > 0.5 && (st.cvr || 0) > 10) searchTermActions.push({ term: st.search_term || '', action: '拆精准组 + 提高竞价', reason: '王牌词' });
+  }
+
+  const recommendations = [];
+  if (issues.some(i => i.severity === 'critical')) {
+    recommendations.push('立即暂停 ACOS 超过 50% 的广告活动，集中预算到表现优秀的活动');
+    recommendations.push('检查高点击无转化的搜索词，添加精准否定');
+  }
+  if (cvr < 5) recommendations.push('转化率偏低，优先优化 Listing（主图、标题、A+内容）');
+  if (aceKeywords.length > 0) recommendations.push(`将王牌词 [${aceKeywords.slice(0, 3).join(', ')}] 拆分为独立精准组`);
+
+  const actionPlan = [
+    `今日：否定高点击无转化词（${highSpendNoSales.slice(0, 5).join(', ') || '无'}）`,
+    '今日：ACOS < 20% 的活动预算增加 30%',
+    '3天内：优化 Listing 提升转化率',
+    '7天内：基于 ABA 数据新增 5-10 个高流量精准词'
+  ];
+
+  return {
+    summary: { total_spend: totalSpend.toFixed(2), total_sales: totalSales.toFixed(2), acos: acos.toFixed(2), ctr: ctr.toFixed(2), cvr: cvr.toFixed(2), cpc: cpc.toFixed(2), campaigns_count: campaigns.length, search_terms_count: searchTerms.length, target_acos: targetACOS, product_stage: stage, main_goal: goal },
+    issues, keyword_analysis: { high_spend_no_sales: highSpendNoSales.slice(0, 10), ace_keywords: aceKeywords.slice(0, 10), keyword_issues: keywordIssues.slice(0, 10) },
+    search_term_actions: searchTermActions.slice(0, 20), recommendations, action_plan: actionPlan,
+    generated_at: new Date().toISOString()
+  };
+}
+
+document.getElementById('btn-diagnose').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-diagnose');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>诊断中...';
+  try {
+    // 优先调用 Worker API，失败则回退到本地诊断
+    let result;
+    try {
+      result = await api('/api/diagnosis/batch', { method: 'POST', body: { reports: parsedReports, config: { target_acos: document.getElementById('cfg-acos').value, product_stage: document.getElementById('cfg-stage').value, main_goal: document.getElementById('cfg-goal').value } } });
+      result = result.result;
+    } catch (e) {
+      toast('后端诊断失败，使用本地引擎', 'info');
+      result = runLocalDiagnosis();
+    }
+    currentDiagnosis = result;
+    showDiagnosisResult(result);
+    document.getElementById('diagnosis-result').classList.remove('hidden');
+    // 更新可视化
+    updateCharts(result);
+  } finally { btn.disabled = false; btn.innerHTML = '运行诊断'; }
+});
+
+function showDiagnosisResult(r) {
+  let html = '';
+
+  // 汇总卡片
+  html += '<div class="grid">';
+  html += `<div class="metric-card"><div class="label">总花费</div><div class="value">$${r.summary.total_spend}</div></div>`;
+  html += `<div class="metric-card"><div class="label">总销售额</div><div class="value">$${r.summary.total_sales}</div></div>`;
+  html += `<div class="metric-card"><div class="label">ACOS</div><div class="value" style="color:${r.summary.acos > r.summary.target_acos ? 'var(--danger)' : 'var(--success)'}">${r.summary.acos}%</div></div>`;
+  html += `<div class="metric-card"><div class="label">CTR</div><div class="value">${r.summary.ctr}%</div></div>`;
+  html += `<div class="metric-card"><div class="label">CVR</div><div class="value">${r.summary.cvr}%</div></div>`;
+  html += `<div class="metric-card"><div class="label">CPC</div><div class="value">$${r.summary.cpc}</div></div>`;
+  html += '</div>';
+
+  // 问题诊断
+  if (r.issues.length > 0) {
+    html += '<div class="result-section"><h3>🚨 问题诊断</h3><ul>';
+    for (const issue of r.issues) {
+      const cls = issue.severity === 'critical' ? 'sev-critical' : issue.severity === 'warning' ? 'sev-warning' : 'sev-info';
+      html += `<li><span class="severity ${cls}">${issue.severity.toUpperCase()}</span> ${escapeHtml(issue.text)}</li>`;
+    }
+    html += '</ul></div>';
+  }
+
+  // 搜索词动作
+  if (r.search_term_actions.length > 0) {
+    html += '<div class="result-section"><h3>🔍 搜索词调整建议</h3>';
+    for (const a of r.search_term_actions) {
+      html += `<div class="action-item"><div class="title">${escapeHtml(a.term || '')} → ${escapeHtml(a.action)}</div><div class="desc">${escapeHtml(a.reason)}</div></div>`;
+    }
+    html += '</div>';
+  }
+
+  // 推荐方案
+  if (r.recommendations.length > 0) {
+    html += '<div class="result-section"><h3>💡 推荐方案</h3><ul>';
+    for (const rec of r.recommendations) html += `<li>${escapeHtml(rec)}</li>`;
+    html += '</ul></div>';
+  }
+
+  // 行动计划
+  if (r.action_plan.length > 0) {
+    html += '<div class="result-section"><h3>📅 行动计划</h3><ul>';
+    for (const act of r.action_plan) html += `<li>${escapeHtml(act)}</li>`;
+    html += '</ul></div>';
+  }
+
+  html += `<p style="text-align:right;color:var(--muted);font-size:12px;margin-top:10px">生成时间: ${new Date(r.generated_at).toLocaleString()} | LeoYoung Original</p>`;
+
+  document.getElementById('result-content').innerHTML = html;
+}
+
+// ==================== Export ====================
+document.getElementById('btn-export-html').addEventListener('click', () => {
+  if (!currentDiagnosis) return;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>诊断报告</title><style>body{font-family:Arial,sans-serif;max-width:900px;margin:40px auto;padding:20px}h1{color:#667eea}table{width:100%;border-collapse:collapse;margin:15px 0}th,td{padding:10px;border:1px solid #ddd;text-align:left}th{background:#667eea;color:#fff}.critical{color:red;font-weight:bold}.warning{color:orange}</style></head><body><h1>双核广告诊断报告</h1><p>生成时间: ${new Date().toLocaleString()}</p><hr>${document.getElementById('result-content').innerHTML}</body></html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `诊断报告_${new Date().toISOString().slice(0,10)}.html`;
+  a.click();
+});
+
+document.getElementById('btn-export-txt').addEventListener('click', () => {
+  if (!currentDiagnosis) return;
+  const r = currentDiagnosis;
+  let txt = `双核广告诊断报告\n生成时间: ${new Date().toLocaleString()}\nLeoYoung Original\n\n`;
+  txt += `【汇总】\n总花费: $${r.summary.total_spend}\n总销售额: $${r.summary.total_sales}\nACOS: ${r.summary.acos}%\nCTR: ${r.summary.ctr}%\nCVR: ${r.summary.cvr}%\n\n`;
+  txt += `【问题诊断】\n`;
+  for (const i of r.issues) txt += `[${i.severity}] ${i.text}\n`;
+  txt += `\n【搜索词调整】\n`;
+  for (const a of r.search_term_actions) txt += `${a.term} -> ${a.action} (${a.reason})\n`;
+  txt += `\n【推荐方案】\n`;
+  for (const rec of r.recommendations) txt += `- ${rec}\n`;
+  txt += `\n【行动计划】\n`;
+  for (const act of r.action_plan) txt += `- ${act}\n`;
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `诊断报告_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+});
+
+// ==================== Calculator ====================
+window.runBidCalc = function() {
+  const price = parseFloat(document.getElementById('calc-price').value) || 0;
+  const margin = parseFloat(document.getElementById('calc-margin').value) || 0;
+  const cvr = parseFloat(document.getElementById('calc-cvr').value) || 0;
+  const targetACOS = parseFloat(document.getElementById('calc-target-acos').value) || 0;
+  const currCPC = parseFloat(document.getElementById('calc-curr-cpc').value) || 0;
+  const currBid = parseFloat(document.getElementById('calc-curr-bid').value) || 0;
+
+  const maxCPC = price * (margin / 100) * (targetACOS / 100);
+  const suggestedBid = maxCPC * 1.2;
+
+  document.getElementById('bid-max-cpc').textContent = '$' + maxCPC.toFixed(2);
+  const resultEl = document.getElementById('bid-result');
+  resultEl.style.display = 'block';
+
+  let suggestion = '';
+  if (currCPC > maxCPC) suggestion = `当前CPC($${currCPC.toFixed(2)})高于理论值，建议降低竞价至 $${suggestedBid.toFixed(2)}`;
+  else if (currCPC < maxCPC * 0.7) suggestion = `当前CPC有提升空间，建议提高竞价至 $${suggestedBid.toFixed(2)}`;
+  else suggestion = `当前CPC在合理范围内，保持竞价 $${currBid.toFixed(2)}`;
+  document.getElementById('bid-suggestion').textContent = suggestion;
+};
+
+// ==================== Charts ====================
+function updateCharts(r) {
+  const ctxAcos = document.getElementById('chart-acos');
+  const ctxSpend = document.getElementById('chart-spend');
+  if (!ctxAcos || !ctxSpend) return;
+
+  new Chart(ctxAcos, {
+    type: 'line',
+    data: {
+      labels: ['当前', '目标', '建议'],
+      datasets: [{
+        label: 'ACOS %',
+        data: [parseFloat(r.summary.acos), r.summary.target_acos, r.summary.target_acos * 0.9],
+        borderColor: '#667eea',
+        backgroundColor: 'rgba(102,126,234,0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  new Chart(ctxSpend, {
+    type: 'doughnut',
+    data: {
+      labels: ['广告花费', '剩余预算'],
+      datasets: [{
+        data: [parseFloat(r.summary.total_spend), Math.max(0, 100 - parseFloat(r.summary.total_spend))],
+        backgroundColor: ['#667eea', '#2a2a3e']
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { labels: { color: '#e0e0e0' } } } }
+  });
+}
+
+// ==================== Password ====================
+window.changePassword = async function() {
+  const oldPwd = document.getElementById('pwd-old').value;
+  const newPwd = document.getElementById('pwd-new').value;
+  if (!oldPwd || !newPwd) { toast('请填写完整', 'error'); return; }
+  try {
+    await api('/api/admin/password', { method: 'POST', body: { username: currentUser.username, newPassword: newPwd } });
+    toast('密码修改成功', 'success');
+  } catch (e) {}
+};
+
+// ==================== Init ====================
+toast('系统就绪', 'info');
+</script>
+</body>
+</html>
